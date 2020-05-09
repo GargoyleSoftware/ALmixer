@@ -50,8 +50,6 @@ cc_library(
       'src/tErrorLib.c',
 
       'src/StandAlone/SimpleMutex.c',
-      'src/StandAlone/SimpleThreadPosix.c',
-      'src/StandAlone/SimpleThreadWindows.c',
 
       'src/StandAlone/SDL/src/file/ALmixer_RWops.c',
       'src/StandAlone/SDL/src/stdlib/ALmixer_getenv.c',
@@ -60,23 +58,45 @@ cc_library(
       'src/StandAlone/SDL/src/stdlib/ALmixer_stdlib.c',
       'src/StandAlone/SDL/src/stdlib/ALmixer_string.c',
 
-      'src/StandAlone/SoundDecoder/OggVorbis.c',
       'src/StandAlone/SoundDecoder/SoundDecoder.c',
       # 'src/StandAlone/SoundDecoder/coreaudio.c',
       # 'src/StandAlone/SoundDecoder/OggTremor.c',
       # 'src/StandAlone/SoundDecoder/OpenSLES_Android.c',
-      # 'src/StandAlone/SoundDecoder/WindowsMediaFoundation.cpp',
-      # 'src/StandAlone/SoundDecoder/WindowsMediaFoundation_IMFByteStreamRWops.cpp',
-      # 'src/StandAlone/SoundDecoder/WindowsMediaFoundationProxy.c',
 
       #'src/StandAlone/SoundDecoder/LGPL/mpg123.c',
       'src/StandAlone/SoundDecoder/LGPL/SDL_sound_minimal.c',
       'src/StandAlone/SoundDecoder/LGPL/wav.c',
-    ],
-    copts = [
-        '-lAL',
-        '-I/usr/include/AL',
-    ],
+    ] + select({
+        "//platforms:win32": [
+            'src/StandAlone/SoundDecoder/WindowsMediaFoundation.cpp',
+            'src/StandAlone/SoundDecoder/WindowsMediaFoundation_IMFByteStreamRWops.cpp',
+            'src/StandAlone/SoundDecoder/WindowsMediaFoundationProxy.c',
+            'src/StandAlone/SimpleThreadWindows.c',
+            ],
+        "//conditions:default": [
+            'src/StandAlone/SoundDecoder/OggVorbis.c',
+            'src/StandAlone/SimpleThreadPosix.c',
+            ]}),
 
-    # defines = defines
-    )
+    deps = [
+        ] + select({
+        "//platforms:win32": [
+            '//3rdparty/mccarthy-bindeps/alsoft' 
+            ],
+        "//conditions:default": [
+            ],
+            }),
+    copts = select({
+        "//platforms:win32": [
+
+        ],
+        "//conditions:default": [
+            '-lAL',
+            '-I/usr/include/AL',]}),
+    defines = select({
+        "//platforms:win32": [
+            '_WIN32',
+        ],
+        "//conditions:default": [
+        ]}))
+

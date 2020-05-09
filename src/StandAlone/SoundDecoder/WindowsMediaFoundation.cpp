@@ -27,6 +27,8 @@
 
 #ifdef _WIN32
 
+#define min(a, b) ((a) < (b)) ? (a) : (b)
+
 #define WINVER _WIN32_WINNT_WIN7
 
 #include <windows.h>
@@ -86,7 +88,7 @@ extern "C"
 	static int MediaFoundation_seek(Sound_Sample *sample, size_t ms);
 }
 // http://msdn.microsoft.com/en-us/library/windows/desktop/dd757927(v=vs.85).aspx
-static const char* extensions_MediaFoundation[] = 
+static const char* extensions_MediaFoundation[] =
 {
 	"aif",
 	"aiff",
@@ -119,7 +121,7 @@ static const char* extensions_MediaFoundation[] =
 	"wma",
 	"sami",
 	"sm",
-	NULL 
+	NULL
 };
 
 // This BS dance is to get around the C++ name mangling which leads to linking problems.
@@ -192,7 +194,7 @@ static int MediaFoundation_init(void)
 	{
         SNDERR("WindowsMediaFoundation: MFStartup failed");
 		return 0;
-	}	
+	}
 } /* MediaFoundation_init */
 
 
@@ -209,12 +211,12 @@ static int MediaFoundation_open(Sound_Sample *sample, const char *ext)
 	Sound_SampleInternal* internal = (Sound_SampleInternal*)sample->opaque;
 	HRESULT hresult;
 	IMFSourceReader* source_reader = NULL;
-	// Since the byte stream stuff is so complicated, if you need to test without it, 
+	// Since the byte stream stuff is so complicated, if you need to test without it,
 	// you can hard code loading a file and use MFCreateSourceReaderFromURL.
 //	const WCHAR* source_file = L"C:\\Users\\username\\Documents\\crystal.wav";
 //	const WCHAR* source_file = L"C:\\Users\\username\\Documents\\battle_hymn_of_the_republic.mp3";
 //	const WCHAR* source_file = L"C:\\Users\\username\\Documents\\TheDeclarationOfIndependencePreambleJFK.m4a";
-	
+
 
 	IMFByteStreamRWops* byte_stream = new IMFByteStreamRWops(internal->rw, sample);
 //	hresult = MFCreateSourceReaderFromURL(source_file, NULL, &source_reader);
@@ -261,7 +263,7 @@ static int MediaFoundation_open(Sound_Sample *sample, const char *ext)
 			{
 				SNDERR("GetNativeMediaType failed");
 				free(media_foundation_file_container);
-				SafeRelease(&source_reader);		
+				SafeRelease(&source_reader);
 				return 0;
     		}
 
@@ -289,7 +291,7 @@ static int MediaFoundation_open(Sound_Sample *sample, const char *ext)
 			SNDDBG2("WindowsMediaFoundation: samples_per_second == (%d).\n", samples_per_second);
 
 
-			// Get the total length of the stream 
+			// Get the total length of the stream
 			PROPVARIANT prop_variant;
 			double duration_in_milliseconds = -1.0;
 			// get the duration, which is a 64-bit integer of 100-nanosecond units
@@ -315,8 +317,8 @@ static int MediaFoundation_open(Sound_Sample *sample, const char *ext)
 			/*
 			 * I want to use the native system to do conversion and decoding for performance reasons.
 			 * This is particularly important on mobile devices like iOS.
-			 * Taking from the Ogg Vorbis decode, I pretend the "actual" format is the same 
-			 * as the desired format. 
+			 * Taking from the Ogg Vorbis decode, I pretend the "actual" format is the same
+			 * as the desired format.
 			 */
 			if(0 == sample->desired.format)
 			{
@@ -324,7 +326,7 @@ static int MediaFoundation_open(Sound_Sample *sample, const char *ext)
 			}
 			else
 			{
-				sample->actual.format = sample->desired.format;				
+				sample->actual.format = sample->desired.format;
 			}
 
 			SNDDBG2("WindowsMediaFoundation: total seconds of sample == (%d).\n", internal->total_time);
@@ -341,15 +343,15 @@ static int MediaFoundation_open(Sound_Sample *sample, const char *ext)
 				media_foundation_file_container->bitsPerSample = bits_per_sample;
 			}
 
-			SafeRelease(&audio_type);		
-			
+			SafeRelease(&audio_type);
+
 
 		}
 
 
 		{
 			IMFMediaType* target_audio_type = NULL;
-		
+
 
 			// Create a partial media type that specifies uncompressed PCM audio.
 			hr = MFCreateMediaType(&target_audio_type);
@@ -399,7 +401,7 @@ static int MediaFoundation_open(Sound_Sample *sample, const char *ext)
 		// specify the output type (pcm)
 		{
 			IMFMediaType* uncompressed_audio_type = NULL;
-			
+
 
 			// Get the complete uncompressed format.
 			hr = source_reader->GetCurrentMediaType((DWORD)MF_SOURCE_READER_FIRST_AUDIO_STREAM, &uncompressed_audio_type);
@@ -447,7 +449,7 @@ static int MediaFoundation_open(Sound_Sample *sample, const char *ext)
 		}
 
 	}
-		
+
 	return(1);
 } /* MediaFoundation_open */
 
@@ -561,7 +563,7 @@ static LONGLONG MediaFoundation_MsecToMFTime(const LONG& time)
 EW: This is part of the fix for seeking because calling SetCurrentPosition was failing.
 It is now split up to set a flag that seeking needs to be done,
 and we call this at a time that seems to work (in the read).
-*/ 
+*/
 static void Internal_DoSeek(Sound_Sample* sample)
 {
 	Sound_SampleInternal *internal = (Sound_SampleInternal *) sample->opaque;
@@ -612,7 +614,7 @@ static size_t MediaFoundation_read(Sound_Sample* sample)
 
 	// need to convert bytes to samples
 	/*
-	max_buffer_size (bytes)   	8 bits 	    
+	max_buffer_size (bytes)   	8 bits
 	----------------------- * 	------- * 	--------------
 								1 byte 		bitsPerSample
 	*/
@@ -622,7 +624,7 @@ static size_t MediaFoundation_read(Sound_Sample* sample)
 	size_t frames_requested = (requested_sample_size /  num_channels);
     size_t frames_needed = frames_requested;
 
-	
+
 	// EW: This is part of the seek deferal fix.
 	if(media_foundation_file_container->isSeeking)
 	{
@@ -676,7 +678,7 @@ static size_t MediaFoundation_read(Sound_Sample* sample)
 		}
 
 		/*
-		SNDDBG2("WindowsMediaFoundation: ReadSample timestamp:%ld, frame:%ld, stream_flags:%d\n", 
+		SNDDBG2("WindowsMediaFoundation: ReadSample timestamp:%ld, frame:%ld, stream_flags:%d\n",
 				timestamp,
 				MediaFoundation_FrameFromMF(timestamp, sample_rate),
 				stream_flags
@@ -702,7 +704,7 @@ static size_t MediaFoundation_read(Sound_Sample* sample)
 		}
 		else if (stream_flags & MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED)
 		{
-			SNDDBG2("WindowsMediaFoundation read: Type change\n");			
+			SNDDBG2("WindowsMediaFoundation read: Type change\n");
 			/* Don't know what to do here. */
 //			sample->flags |= SOUND_SAMPLEFLAG_EAGAIN;
 			// more C++ BS
@@ -713,7 +715,7 @@ static size_t MediaFoundation_read(Sound_Sample* sample)
 		{
 			// generally this will happen when stream_flags contains ENDOFSTREAM,
 			// so it'll be caught before now -bkgood
-			SNDDBG2("WindowsMediaFoundation read: No sample\n");			
+			SNDDBG2("WindowsMediaFoundation read: No sample\n");
 			/* Don't know what to do here. */
 //			sample->flags |= SOUND_SAMPLEFLAG_ERROR;
 			// more C++ BS
@@ -745,7 +747,7 @@ static size_t MediaFoundation_read(Sound_Sample* sample)
 		if(media_foundation_file_container->isSeeking)
 		{
 			__int64 buffer_position = MediaFoundation_FrameFromMF(timestamp, sample_rate);
-			SNDDBG2("WindowsMediaFoundation read: While seeking to nextFrame:%d, WMF put us at buffer_position:%ld\n", 
+			SNDDBG2("WindowsMediaFoundation read: While seeking to nextFrame:%d, WMF put us at buffer_position:%ld\n",
 				media_foundation_file_container->nextFrame,
 				buffer_position
 			);
@@ -848,7 +850,7 @@ releaseSample:
     long samples_read = requested_sample_size - frames_needed * num_channels;
     media_foundation_file_container->currentPosition += samples_read;
 	SNDDBG2("WindowsMediaFoundation read for requested_sample_size:%d returning %d samples_read.\n", requested_sample_size, samples_read);
-	
+
 	/* // I don't want float samples
 	const int sample_max = 1 << (media_foundation_file_container->bitsPerSample-1);
 	//Convert to float samples
@@ -963,7 +965,7 @@ static int MediaFoundation_seek(Sound_Sample *sample, size_t ms)
     media_foundation_file_container->isSeeking = true;
     media_foundation_file_container->currentPosition = the_result;
 	media_foundation_file_container->seekTargetPosition = mf_seek_target;
-	
+
 	return(1);
 } /* MediaFoundation_seek */
 
